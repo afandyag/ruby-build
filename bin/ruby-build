@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-RUBY_BUILD_VERSION="20131030"
+RUBY_BUILD_VERSION="20131206"
 
 set -E
 exec 3<&2 # preserve original stderr at fd 3
@@ -101,7 +101,7 @@ num_cpu_cores() {
   if [ "Darwin" = "$(uname -s)" ]; then
     num="$(sysctl -n hw.ncpu 2>/dev/null || true)"
   elif [ -r /proc/cpuinfo ]; then
-    num="$(grep -c ^processor /proc/cpuinfo)"
+    num="$(grep ^processor /proc/cpuinfo | wc -l)"
     [ "$num" -gt 0 ] || num=""
   fi
   echo "${num:-2}"
@@ -445,7 +445,7 @@ build_package_rbx() {
   local package_name="$1"
 
   { bundle --path=vendor/bundle
-    ./configure --prefix="$PREFIX_PATH" $RUBY_CONFIGURE_OPTS
+    RUBYOPT="-rubygems $RUBYOPT" ./configure --prefix="$PREFIX_PATH" $RUBY_CONFIGURE_OPTS
     rake install
     fix_rbx_gem_binstubs "$PREFIX_PATH"
   } >&4 2>&1
