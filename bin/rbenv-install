@@ -19,15 +19,15 @@
 set -e
 [ -n "$RBENV_DEBUG" ] && set -x
 
-# Provide rbenv completions
-if [ "$1" = "--complete" ]; then
-  exec ruby-build --definitions
-fi
+resolve_link() {
+  $(type -p greadlink readlink | head -1) $1
+}
 
-if [ -z "$RBENV_ROOT" ]; then
-  RBENV_ROOT="${HOME}/.rbenv"
-fi
+abs_dirname() {
+  local cwd="$(pwd)"
+  local path="$1"
 
+<<<<<<< HEAD
 # Load shared library functions
 eval "$(ruby-build --lib)"
 
@@ -57,6 +57,22 @@ for option in "${OPTIONS[@]}"; do
     usage 0
     ;;
   "l" | "list" )
+=======
+  while [ -n "$path" ]; do
+    cd "${path%/*}"
+    local name="${path##*/}"
+    path="$(resolve_link "$name" || true)"
+  done
+
+  pwd
+  cd "$cwd"
+}
+
+usage() {
+  { echo "usage: rbenv install [--build | --package] VERSION"
+    echo "       rbenv install /path/to/definition"
+    echo
+>>>>>>> 4d8999e9d10651adee3030d9e74667a852aac846
     echo "Available versions:"
     definitions | indent
     exit
@@ -178,6 +194,7 @@ if [ "$STATUS" == "2" ]; then
     echo "ruby-build. If it's still missing, open a request on the ruby-build"
     echo "issue tracker: https://github.com/sstephenson/ruby-build/issues"
   } >&2
+<<<<<<< HEAD
 fi
 
 # Execute `after_install` hooks.
@@ -191,3 +208,57 @@ else
 fi
 
 exit "$STATUS"
+=======
+  exit 1
+}
+
+bin_dir="$(abs_dirname "$0")"
+export PATH="${bin_dir}:$PATH"
+
+# Provide rbenv completions
+if [ "$1" = "--complete" ]; then
+  exec ruby-build --definitions
+fi
+
+force_build=""
+force_package=""
+if [ "$1" = "--build" ]; then
+  force_build=1
+  shift
+elif [ "$1" = "--package" ]; then
+  force_package=1
+  shift
+fi
+
+definition="$1"
+case "$definition" in
+"" | -* )
+  usage
+  ;;
+esac
+
+if [ -z "$RBENV_ROOT" ]; then
+  RBENV_ROOT="${HOME}/.rbenv"
+fi
+
+version_name="${definition##*/}"
+prefix="${RBENV_ROOT}/versions/${version_name}"
+
+package() {
+  ruby-package install $* "$definition" "$prefix"
+}
+
+build() {
+  ruby-build "$definition" "$prefix"
+}
+
+if [ -n "$force_build" ]; then
+  build
+elif [ -n "$force_package" ]; then
+  package
+else
+  package --fail-silently || build
+fi
+
+rbenv rehash
+>>>>>>> 4d8999e9d10651adee3030d9e74667a852aac846
